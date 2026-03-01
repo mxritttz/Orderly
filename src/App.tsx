@@ -7,6 +7,8 @@ import IntegrationsPage from "./features/orderly/pages/IntegrationsPage";
 import SettingsPage from "./features/orderly/pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
 import OrderlyLogo from "./components/OrderlyLogo";
+import CustomerOrderPage from "./features/customer/CustomerOrderPage";
+import CustomerTrackPage from "./features/customer/CustomerTrackPage";
 
 function Home() {
   const { user, tenants, logout } = useAuth();
@@ -54,6 +56,9 @@ export default function App() {
         path="/orderly-mvp"
         element={<Navigate to={`/t/${firstTenantSlug}/dashboard`} replace />}
       />
+      <Route path="/order/:tenantSlug" element={<CustomerOrderPage />} />
+      <Route path="/c/:tenantSlug" element={<CustomerOrderPage />} />
+      <Route path="/c/:tenantSlug/track/:orderId" element={<CustomerTrackPage />} />
       <Route
         path="/t/:tenantSlug"
         element={

@@ -28,4 +28,6 @@ export async function ordersRoutes(app: FastifyInstance) {
     { preHandler: authGuard },
     ordersController.updateOrderStatus
   );
+  app.post("/api/public/tenants/:tenantSlug/orders", ordersController.createPublicOrder);
+  app.get("/api/public/tenants/:tenantSlug/orders/:orderId", ordersController.publicTrackOrder);
 }

@@ -149,7 +149,7 @@ export function TenantProvider({ tenant, children }: TenantProviderProps) {
     void loadOrders();
     const timer = window.setInterval(() => {
       void loadOrders();
-    }, 15000);
+    }, 5000);
 
     return () => {
       active = false;

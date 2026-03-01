@@ -1,4 +1,4 @@
-import type { OrderStatus, PrismaClient } from "@prisma/client";
+import type { OrderChannel, OrderStatus, PrismaClient } from "@prisma/client";
 
 type FindOrdersInput = {
   tenantId: string;
@@ -10,6 +10,14 @@ type FindOrdersInput = {
 
 export class OrdersRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  findPrimaryActiveLocation(tenantId: string) {
+    return this.prisma.location.findFirst({
+      where: { tenantId, isActive: true },
+      orderBy: [{ createdAt: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, city: true },
+    });
+  }
 
   findMany(input: FindOrdersInput) {
     return this.prisma.order.findMany({
@@ -80,6 +88,52 @@ export class OrdersRepository {
             city: true,
           },
         },
+        items: {
+          select: {
+            id: true,
+            itemName: true,
+            qty: true,
+            unitPrice: true,
+            notes: true,
+          },
+        },
+      },
+    });
+  }
+
+  createPublicOrder(input: {
+    tenantId: string;
+    locationId: string;
+    externalId: string;
+    customerName: string;
+    customerPhone: string;
+    notes?: string;
+    pickupAt?: Date;
+    totalAmount: number;
+    channel: OrderChannel;
+    items: Array<{ itemName: string; qty: number; unitPrice: number }>;
+  }) {
+    return this.prisma.order.create({
+      data: {
+        tenantId: input.tenantId,
+        locationId: input.locationId,
+        externalId: input.externalId,
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        notes: input.notes,
+        pickupAt: input.pickupAt,
+        totalAmount: input.totalAmount.toFixed(2),
+        channel: input.channel,
+        status: "NEW",
+        items: {
+          create: input.items.map((item) => ({
+            itemName: item.itemName,
+            qty: item.qty,
+            unitPrice: item.unitPrice.toFixed(2),
+          })),
+        },
+      },
+      include: {
         items: {
           select: {
             id: true,

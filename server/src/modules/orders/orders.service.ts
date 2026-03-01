@@ -41,6 +41,20 @@ type UpdateOrderStatusInput = {
   status: keyof typeof statusMap;
 };
 
+type CreatePublicOrderInput = {
+  tenantSlug: string;
+  customerName: string;
+  customerPhone: string;
+  notes?: string;
+  pickupEtaMinutes?: number;
+  items: Array<{ itemName: string; qty: number; unitPrice: number }>;
+};
+
+type PublicTrackOrderInput = {
+  tenantSlug: string;
+  orderId: string;
+};
+
 export class OrdersService {
   constructor(
     private readonly tenantsRepository: TenantsRepository,
@@ -150,6 +164,99 @@ export class OrdersService {
         externalId: updatedOrder.externalId,
         status: reverseStatusMap[updatedOrder.status],
         updatedAt: updatedOrder.updatedAt.toISOString(),
+      },
+    };
+  }
+
+  async createPublicOrder(input: CreatePublicOrderInput) {
+    const tenant = await this.tenantsRepository.findBySlug(input.tenantSlug);
+    if (!tenant) return { type: "tenant_not_found" as const };
+
+    const location = await this.ordersRepository.findPrimaryActiveLocation(tenant.id);
+    if (!location) return { type: "location_not_found" as const };
+
+    const totalAmount = input.items.reduce(
+      (sum, item) => sum + item.qty * item.unitPrice,
+      0
+    );
+
+    const externalId = `WEB-${Date.now().toString().slice(-6)}-${Math.floor(
+      Math.random() * 90 + 10
+    )}`;
+
+    const pickupAt =
+      typeof input.pickupEtaMinutes === "number"
+        ? new Date(Date.now() + input.pickupEtaMinutes * 60_000)
+        : undefined;
+
+    const created = await this.ordersRepository.createPublicOrder({
+      tenantId: tenant.id,
+      locationId: location.id,
+      externalId,
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      notes: input.notes,
+      pickupAt,
+      totalAmount,
+      channel: "WEB",
+      items: input.items,
+    });
+
+    return {
+      type: "ok" as const,
+      order: {
+        id: created.id,
+        externalId: created.externalId,
+        status: reverseStatusMap[created.status],
+        tenant: {
+          slug: tenant.slug,
+          name: tenant.name,
+          city: tenant.city,
+        },
+        location,
+        totalAmount: Number(created.totalAmount),
+        createdAt: created.createdAt.toISOString(),
+        pickupAt: created.pickupAt?.toISOString() ?? null,
+        items: created.items.map((item) => ({
+          id: item.id,
+          itemName: item.itemName,
+          qty: item.qty,
+          unitPrice: Number(item.unitPrice),
+          notes: item.notes,
+        })),
+      },
+    };
+  }
+
+  async getPublicOrderTracking(input: PublicTrackOrderInput) {
+    const tenant = await this.tenantsRepository.findBySlug(input.tenantSlug);
+    if (!tenant) return { type: "tenant_not_found" as const };
+
+    const order = await this.ordersRepository.findById(tenant.id, input.orderId);
+    if (!order) return { type: "order_not_found" as const };
+
+    return {
+      type: "ok" as const,
+      order: {
+        id: order.id,
+        externalId: order.externalId,
+        status: reverseStatusMap[order.status],
+        customerName: order.customerName,
+        createdAt: order.createdAt.toISOString(),
+        pickupAt: order.pickupAt?.toISOString() ?? null,
+        totalAmount: Number(order.totalAmount),
+        items: order.items.map((item) => ({
+          id: item.id,
+          itemName: item.itemName,
+          qty: item.qty,
+          unitPrice: Number(item.unitPrice),
+          notes: item.notes,
+        })),
+      },
+      tenant: {
+        slug: tenant.slug,
+        name: tenant.name,
+        city: tenant.city,
       },
     };
   }

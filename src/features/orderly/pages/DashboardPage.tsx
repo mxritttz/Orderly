@@ -91,8 +91,10 @@ export default function DashboardPage() {
       )}
 
       <div className="dashboard-hero">
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", margin: 0 }}>Bestellungen</h1>
-        <p style={{ fontSize: 14, color: "#475569", margin: "4px 0 0" }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-main)", margin: 0 }}>
+          Bestellungen
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: "4px 0 0" }}>
           Uebersicht aller eingehenden Bestellungen vom AI-Agenten
         </p>
       </div>
@@ -122,12 +124,12 @@ export default function DashboardPage() {
               style={{
                 padding: "6px 16px",
                 borderRadius: 9999,
-                background: filter === item.id ? "#111827" : "#fff",
-                color: filter === item.id ? "#fff" : "#6b7280",
+                background: filter === item.id ? "#111827" : "var(--card-bg)",
+                color: filter === item.id ? "#fff" : "var(--text-muted)",
                 fontSize: 13,
                 fontWeight: 500,
                 cursor: "pointer",
-                border: filter === item.id ? "none" : "1px solid #e5e7eb",
+                border: filter === item.id ? "none" : "1px solid var(--card-border)",
               }}
               className="filter-pill"
             >
@@ -157,14 +159,7 @@ export default function DashboardPage() {
             placeholder="Suche nach Name oder ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 10,
-              border: "1px solid #cbd5e1",
-              fontSize: 13,
-              width: 250,
-              outline: "none",
-            }}
+            className="dashboard-search-input"
           />
         </div>
       </div>
@@ -172,7 +167,7 @@ export default function DashboardPage() {
       <div className="dashboard-grid">
         <div>
         {isOrdersLoading && orders.length === 0 && (
-          <div style={{ textAlign: "center", padding: 24, color: "#6b7280", fontSize: 14 }}>
+          <div style={{ textAlign: "center", padding: 24, color: "var(--text-muted)", fontSize: 14 }}>
             Bestellungen werden geladen...
           </div>
         )}
@@ -192,7 +187,7 @@ export default function DashboardPage() {
           </div>
         )}
         {filteredOrders.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 48, color: "#9ca3af", fontSize: 14 }}>
+          <div style={{ textAlign: "center", padding: 48, color: "var(--text-muted)", fontSize: 14 }}>
             Keine Bestellungen gefunden.
           </div>
         ) : (
@@ -213,10 +208,10 @@ export default function DashboardPage() {
           <div className="order-detail-title">Ausgewaehlte Bestellung</div>
           {selectedOrderData ? (
             <>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text-main)", marginBottom: 4 }}>
                 {selectedOrderData.externalId}
               </div>
-              <div style={{ fontSize: 14, color: "#475569", marginBottom: 12 }}>
+              <div style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 12 }}>
                 {selectedOrderData.customer} · {selectedOrderData.phone || "keine Nummer"}
               </div>
               <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
@@ -233,7 +228,7 @@ export default function DashboardPage() {
               </div>
             </>
           ) : (
-            <div style={{ color: "#64748b", fontSize: 14 }}>Keine Bestellung ausgewaehlt.</div>
+            <div style={{ color: "var(--text-muted)", fontSize: 14 }}>Keine Bestellung ausgewaehlt.</div>
           )}
         </aside>
       </div>

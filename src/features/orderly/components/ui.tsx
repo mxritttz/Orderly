@@ -73,20 +73,13 @@ export const OrderCard = ({
 }: OrderCardProps) => {
   const channel = CHANNELS[order.channel];
   const status = STATUS_CONFIG[order.status];
-  const nextStatus: Record<OrderStatus, OrderStatus> = {
-    new: "confirmed",
-    confirmed: "preparing",
-    preparing: "ready",
-    ready: "done",
-    done: "done",
-  };
-  const nextLabel: Record<OrderStatus, string> = {
-    new: "Bestaetigen",
-    confirmed: "Zubereiten",
-    preparing: "Fertig",
-    ready: "Erledigt",
-    done: "Erledigt",
-  };
+  const orderedStatuses: Array<{ id: OrderStatus; label: string }> = [
+    { id: "new", label: "Neu" },
+    { id: "confirmed", label: "Bestaetigt" },
+    { id: "preparing", label: "In Zubereitung" },
+    { id: "ready", label: "Abholbereit" },
+    { id: "done", label: "Erledigt" },
+  ];
 
   return (
     <div
@@ -105,114 +98,102 @@ export const OrderCard = ({
         boxShadow: isSelected ? "0 16px 34px rgba(37,99,235,0.16)" : "0 10px 24px rgba(15,23,42,0.06)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 10,
-        }}
-      >
+      <div className="order-card-layout">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>
-              {order.externalId}
-            </span>
-            <Badge color={status.color} bg={status.bg}>
-              {status.label}
-            </Badge>
-            <span
-              title={channel.label}
-              style={{
-                fontSize: 14,
-                background: channel.color + "15",
-                borderRadius: 6,
-                padding: "2px 6px",
-              }}
-            >
-              {channel.icon}
-            </span>
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{order.customer}</div>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>
-            {formatTime(order.createdAt)} · {timeAgo(order.createdAt)} · Abholung{" "}
-            <strong style={{ color: "#374151" }}>{order.pickup}</strong>
-          </div>
-          {order.location && (
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-              Standort: <strong style={{ color: "#374151" }}>{order.location.name}</strong>
+          <div className="order-card-top">
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text-main)" }}>
+                  {order.externalId}
+                </span>
+                <Badge color={status.color} bg={status.bg}>
+                  {status.label}
+                </Badge>
+                <span
+                  title={channel.label}
+                  style={{
+                    fontSize: 14,
+                    background: channel.color + "15",
+                    borderRadius: 6,
+                    padding: "2px 6px",
+                  }}
+                >
+                  {channel.icon}
+                </span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)" }}>{order.customer}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {formatTime(order.createdAt)} · {timeAgo(order.createdAt)} · Abholung{" "}
+                <strong style={{ color: "var(--text-main)" }}>{order.pickup}</strong>
+              </div>
+              {order.location && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                  Standort: <strong style={{ color: "var(--text-main)" }}>{order.location.name}</strong>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>
-            {order.total.toFixed(2)} EUR
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-            AI {Math.round(order.aiConfidence * 100)}%
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 10 }}>
+            {order.items.map((item, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: 12,
+                  background: "color-mix(in srgb, var(--card-bg) 86%, var(--card-border) 14%)",
+                  borderRadius: 6,
+                  padding: "3px 8px",
+                  color: "var(--text-main)",
+                }}
+              >
+                {item.qty}x {item.name}
+                {item.notes && <span style={{ color: "#f59e0b", marginLeft: 4 }}>({item.notes})</span>}
+              </span>
+            ))}
           </div>
         </div>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-        {order.items.map((item, i) => (
-          <span
-            key={i}
-            style={{
-              fontSize: 12,
-              background: "#f3f4f6",
-              borderRadius: 6,
-              padding: "3px 8px",
-              color: "#374151",
-            }}
-          >
-            {item.qty}x {item.name}
-            {item.notes && <span style={{ color: "#f59e0b", marginLeft: 4 }}>({item.notes})</span>}
-          </span>
-        ))}
-      </div>
-      {order.status !== "done" && (
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              void onStatusChange(order.id, nextStatus[order.status]);
-            }}
-            style={{
-              flex: 1,
-              padding: "8px 16px",
-              borderRadius: 10,
-              border: "none",
-              background: status.color,
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            {nextLabel[order.status]}
-          </button>
-          {order.status === "new" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                void onStatusChange(order.id, "done");
-              }}
+
+        <div className="order-card-status-center">
+          <div className="order-status-grid">
+            {orderedStatuses.map((entry) => {
+              const tone = STATUS_CONFIG[entry.id];
+              const isCurrent = order.status === entry.id;
+              return (
+                <button
+                  key={entry.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isCurrent) void onStatusChange(order.id, entry.id);
+                  }}
+              className={`order-status-btn ${isCurrent ? "active" : ""}`}
               style={{
-                padding: "8px 16px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#6b7280",
-                fontWeight: 500,
-                fontSize: 13,
-                cursor: "pointer",
+                borderColor: isCurrent ? tone.color : `${tone.color}7a`,
+                background: isCurrent ? `${tone.color}1f` : "var(--card-bg)",
+                color: tone.color,
+                boxShadow: isCurrent ? `0 0 0 1px ${tone.color}28 inset, 0 8px 18px ${tone.color}18` : "none",
               }}
-            >
-              Ablehnen
-            </button>
-          )}
+              disabled={isCurrent}
+              aria-pressed={isCurrent}
+                  title={isCurrent ? "Aktueller Status" : `Status setzen: ${entry.label}`}
+                >
+                  {entry.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        <aside className="order-card-price">
+          <div className="order-card-total">
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-main)" }}>
+              {order.total.toFixed(2)} EUR
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+              AI {Math.round(order.aiConfidence * 100)}%
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };
@@ -235,10 +216,10 @@ export const IntegrationCard = ({
   <div
     className="integration-card"
     style={{
-      background: "#fff",
+      background: "var(--card-bg)",
       borderRadius: 14,
       padding: "20px",
-      border: connected ? "2px solid #10b981" : "1px solid #e5e7eb",
+      border: connected ? "2px solid #10b981" : "1px solid var(--card-border)",
       marginBottom: 12,
       transition: "all 0.2s ease",
     }}
@@ -247,8 +228,8 @@ export const IntegrationCard = ({
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ fontSize: 28 }}>{icon}</span>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>{name}</div>
-          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>{description}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text-main)" }}>{name}</div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{description}</div>
         </div>
       </div>
       <button
@@ -273,10 +254,10 @@ export const IntegrationCard = ({
         style={{
           marginTop: 12,
           padding: "10px 14px",
-          background: "#f9fafb",
+          background: "color-mix(in srgb, var(--card-bg) 90%, var(--card-border) 10%)",
           borderRadius: 8,
           fontSize: 12,
-          color: "#6b7280",
+          color: "var(--text-muted)",
           fontFamily: "monospace",
         }}
       >
