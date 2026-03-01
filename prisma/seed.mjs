@@ -47,26 +47,96 @@ const baseMenu = [
   { name: "Ayran", category: "Getraenke", price: "2.00" },
 ];
 
-const ordersPerTenant = [
-  {
-    externalId: "ORD-1041",
-    customerName: "Mueller, Stefan",
-    customerPhone: "+49 176 4821 3347",
-    channel: OrderChannel.PHONE,
-    status: OrderStatus.NEW,
-    totalAmount: "23.00",
-    aiConfidence: "0.960",
-  },
-  {
-    externalId: "ORD-1040",
-    customerName: "Yilmaz, Ayse",
-    customerPhone: "+49 151 2293 8812",
-    channel: OrderChannel.SMS,
-    status: OrderStatus.CONFIRMED,
-    totalAmount: "17.50",
-    aiConfidence: "0.920",
-  },
+const sampleCustomers = [
+  { name: "Mueller, Stefan", phone: "+49 176 4821 3347" },
+  { name: "Yilmaz, Ayse", phone: "+49 151 2293 8812" },
+  { name: "Kaya, Mert", phone: "+49 160 7331 100" },
+  { name: "Demir, Elif", phone: "+49 152 4498 227" },
+  { name: "Arslan, Can", phone: "+49 171 2200 555" },
+  { name: "Schneider, Lara", phone: "+49 177 8227 910" },
+  { name: "Wagner, Jonas", phone: "+49 159 3324 663" },
+  { name: "Koc, Deniz", phone: "+49 172 4418 092" },
+  { name: "Acar, Emre", phone: "+49 151 9817 204" },
+  { name: "Yildiz, Melis", phone: "+49 176 5571 443" },
+  { name: "Becker, Paul", phone: "+49 152 8732 118" },
+  { name: "Aydin, Zeynep", phone: "+49 178 2904 662" },
 ];
+
+const orderStatuses = [
+  OrderStatus.NEW,
+  OrderStatus.CONFIRMED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY,
+  OrderStatus.DONE,
+];
+
+const orderChannels = [OrderChannel.PHONE, OrderChannel.SMS, OrderChannel.EMAIL, OrderChannel.WEB];
+
+function buildOrdersForTenant(tenantSlug, tenantIndex) {
+  const orders = [];
+  const totalOrders = 24;
+  const base = 1040 + tenantIndex * 100;
+
+  for (let i = 0; i < totalOrders; i += 1) {
+    const customer = sampleCustomers[(i + tenantIndex * 2) % sampleCustomers.length];
+    const qtyMain = 1 + (i % 3);
+    const addFries = i % 2 === 0;
+    const addAyran = i % 4 !== 0;
+    const mainTotal = qtyMain * 7.5;
+    const friesTotal = addFries ? 3 : 0;
+    const ayranTotal = addAyran ? 2 : 0;
+    const totalAmount = (mainTotal + friesTotal + ayranTotal).toFixed(2);
+    const confidence = (0.86 + ((i + tenantIndex) % 11) * 0.011).toFixed(3);
+
+    orders.push({
+      externalId: `ORD-${base + i}`,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      channel: orderChannels[(i + tenantIndex) % orderChannels.length],
+      status: orderStatuses[(i + tenantIndex) % orderStatuses.length],
+      totalAmount,
+      aiConfidence: confidence,
+      items: [
+        { itemName: "Doner Kebab", qty: qtyMain, unitPrice: "7.50" },
+        ...(addFries ? [{ itemName: "Pommes klein", qty: 1, unitPrice: "3.00" }] : []),
+        ...(addAyran ? [{ itemName: "Ayran", qty: 1, unitPrice: "2.00" }] : []),
+      ],
+    });
+  }
+
+  // Keep two familiar order IDs for quick manual checks.
+  if (tenantSlug === "doner-palace") {
+    orders[0] = {
+      externalId: "ORD-1041",
+      customerName: "Mueller, Stefan",
+      customerPhone: "+49 176 4821 3347",
+      channel: OrderChannel.PHONE,
+      status: OrderStatus.NEW,
+      totalAmount: "23.00",
+      aiConfidence: "0.960",
+      items: [
+        { itemName: "Doner Kebab", qty: 2, unitPrice: "7.50" },
+        { itemName: "Pommes klein", qty: 1, unitPrice: "3.00" },
+        { itemName: "Ayran", qty: 1, unitPrice: "2.00" },
+      ],
+    };
+    orders[1] = {
+      externalId: "ORD-1040",
+      customerName: "Yilmaz, Ayse",
+      customerPhone: "+49 151 2293 8812",
+      channel: OrderChannel.SMS,
+      status: OrderStatus.CONFIRMED,
+      totalAmount: "17.50",
+      aiConfidence: "0.920",
+      items: [
+        { itemName: "Doner Kebab", qty: 2, unitPrice: "7.50" },
+        { itemName: "Pommes klein", qty: 1, unitPrice: "3.00" },
+      ],
+    };
+  }
+
+  return orders;
+}
 
 async function main() {
   const owner = await prisma.user.upsert({
@@ -99,7 +169,7 @@ async function main() {
     },
   });
 
-  for (const tenantData of tenants) {
+  for (const [tenantIndex, tenantData] of tenants.entries()) {
     const tenant = await prisma.tenant.upsert({
       where: { slug: tenantData.slug },
       update: { name: tenantData.name, city: tenantData.city },
@@ -178,6 +248,7 @@ async function main() {
       });
     }
 
+    const ordersPerTenant = buildOrdersForTenant(tenant.slug, tenantIndex);
     for (const [index, orderData] of ordersPerTenant.entries()) {
       const location = locations[index % locations.length];
       const order = await prisma.order.upsert({
@@ -207,10 +278,7 @@ async function main() {
       const existingItems = await prisma.orderItem.count({ where: { orderId: order.id } });
       if (existingItems === 0) {
         await prisma.orderItem.createMany({
-          data: [
-            { orderId: order.id, itemName: "Doner Kebab", qty: 2, unitPrice: "7.50" },
-            { orderId: order.id, itemName: "Pommes klein", qty: 1, unitPrice: "3.00" },
-          ],
+          data: orderData.items.map((item) => ({ orderId: order.id, ...item })),
         });
       }
     }

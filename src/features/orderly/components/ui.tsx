@@ -37,21 +37,22 @@ type StatCardProps = {
 
 export const StatCard = ({ icon, label, value, sub, accent }: StatCardProps) => (
   <div
+    className="stat-card"
     style={{
-      background: "#fff",
+      background: "var(--card-bg)",
       borderRadius: 16,
       padding: "20px 24px",
-      border: "1px solid #e5e7eb",
+      border: "1px solid var(--card-border)",
       flex: 1,
       minWidth: 160,
     }}
   >
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
       <span style={{ fontSize: 20 }}>{icon}</span>
-      <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>{label}</span>
     </div>
-    <div style={{ fontSize: 28, fontWeight: 700, color: accent ?? "#111827" }}>{value}</div>
-    {sub && <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>{sub}</div>}
+    <div style={{ fontSize: 28, fontWeight: 700, color: accent ?? "var(--text-main)" }}>{value}</div>
+    {sub && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{sub}</div>}
   </div>
 );
 

@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { getApiBaseUrl } from "../shared/apiBaseUrl";
 
 type AuthTenant = {
   role: "OWNER" | "MANAGER" | "STAFF";
@@ -40,7 +41,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const API_BASE_URL = getApiBaseUrl();
 
 type MeResponse = {
   success: true;

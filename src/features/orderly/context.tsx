@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createInitialTenantState } from "./data";
 import type { IntegrationKey, Order, OrderStatus, Tenant, TenantState } from "./types";
+import { getApiBaseUrl } from "../../shared/apiBaseUrl";
 
 type TenantContextValue = {
   tenant: Tenant;
@@ -14,7 +15,7 @@ type TenantContextValue = {
 };
 
 const TenantContext = createContext<TenantContextValue | null>(null);
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const API_BASE_URL = getApiBaseUrl();
 
 const storageKey = (tenantSlug: string) => `orderly:tenant-state:${tenantSlug}`;
 
