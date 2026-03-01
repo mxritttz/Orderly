@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum LocationRole {
+  VIEWER
+  MANAGER
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  PREPARING
+  READY
+  DONE
+}
+
+enum OrderChannel {
+  PHONE
+  SMS
+  EMAIL
+  WEB
+}
+
+enum IntegrationProvider {
+  LIGHTSPEED
+  ORDERBIRD
+  SUMUP
+  CUSTOM
+}
+
+model Tenant {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  name         String
+  city         String
+  timezone     String        @default("Europe/Berlin")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  memberships  Membership[]
+  locations    Location[]
+  menuItems    MenuItem[]
+  orders       Order[]
+  integrations Integration[]
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  fullName    String
+  passwordHash String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+  sessions    Session[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations MembershipLocation[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+}
+
+model Location {
+  id          String               @id @default(cuid())
+  tenantId    String
+  name        String
+  address     String?
+  city        String
+  timezone    String               @default("Europe/Berlin")
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  memberships MembershipLocation[]
+  orders      Order[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+}
+
+model MembershipLocation {
+  id           String       @id @default(cuid())
+  membershipId String
+  locationId   String
+  role         LocationRole @default(VIEWER)
+  createdAt    DateTime     @default(now())
+  membership   Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, locationId])
+  @@index([locationId])
+}
+
+model MenuItem {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  category  String
+  price     Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@index([tenantId, isActive])
+}
+
+model Order {
+  id           String       @id @default(cuid())
+  tenantId     String
+  locationId   String
+  externalId   String
+  customerName String
+  customerPhone String?
+  channel      OrderChannel
+  status       OrderStatus  @default(NEW)
+  pickupAt     DateTime?
+  notes        String?
+  totalAmount  Decimal      @db.Decimal(10, 2)
+  aiConfidence Decimal?     @db.Decimal(4, 3)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items        OrderItem[]
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId, locationId, status, createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  menuItemId String?
+  itemName   String
+  qty        Int
+  unitPrice  Decimal  @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model Integration {
+  id          String              @id @default(cuid())
+  tenantId    String
+  provider    IntegrationProvider
+  isConnected Boolean             @default(false)
+  apiKeyMasked String?
+  lastSyncAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId        String
+  tokenHash     String   @unique
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
